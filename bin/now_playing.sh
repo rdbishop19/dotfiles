@@ -1,49 +1,27 @@
 #!/bin/bash
+# Source: https://www.tylerewing.co/tmux-now-playing 
 
-# Internal IP
-IP=$(ipconfig getifaddr en0)
+NOW_PLAYING=$(osascript <<EOF
+set spotify_state to false
 
-# # Packet loss check
-# gtimeout 7s ping -c 5 google.com | grep 'loss' | awk '{print $7}' > /dev/null 2>&1
-# if [[ $? -eq 0 ]]
-#     then
-#         PL=$(ping -c 5 google.com | grep 'loss' | awk '{print $7}')
-#         PL+=" p/l"
-#     else
-#         PL=""
-# fi
+if is_app_running("Spotify") then
+	tell application "Spotify" to set spotify_state to (player state as text)
+end if
 
-# # Speedtest
-# DL=$(cat ~/bin/bandwidth.log | awk 'NR==2{print $2}')
-# UP=$(cat ~/bin/bandwidth.log | awk 'NR==3{print $2}')
-
-# # Public IP
-PUBLIC_IP=`curl -4 ifconfig.co`
-
-if [[ "$PUBLIC_IP" = ";; connection timed out; no servers could be reached" ]]; then 
-    PUBLIC_IP="Not Available"
-elif [[ "$PUBLIC_IP" = "" ]]; then
-    PUBLIC_IP="No external access"
-else 
-    PUBLIC_IP=`curl -4 ifconfig.co`
-fi
- 
-INTERNET=''
-
-internet_info=`airport -I | grep agrCtlRSSI | awk '{print $2}' | sed 's/-//g'`
-
-if [[ $internet_info -lt 20 ]]; then
-    echo -n '#[fg=colour116]'
-elif [[ $internet_info -lt 30 ]]; then
-    echo -n '#[fg=colour117]'
-elif [[ $internet_info -lt 40 ]]; then
-    echo -n '#[fg=colour118]'
-elif [[ $internet_info -lt 50 ]]; then
-    echo -n '#[fg=colour119]'
+(* Whatever other music applications you use *)
+if spotify_state is equal to "playing" then
+	tell application "Spotify"
+		set track_name to name of current track
+		set artist_name to artist of current track
+		return track_name & " - #[bold]" & artist_name & "#[nobold]"
+	end tell
 else
-    echo -n '#[fg=colour120]'
-fi
+	return "Nothing playing :("
+end if
 
-# echo -n "$INTERNET  -[$internet_info]db | #[fg=colour81]$PL #[fg=colour86]$DL Mbit/s $UP Mbit/s #[fg=colour197]$IP | $PUBLIC_IP"
+on is_app_running(app_name)
+	tell application "System Events" to (name of processes) contains app_name
+end is_app_running
+EOF)
 
-echo -n "$INTERNET  -[$internet_info]db | #[fg=colour197]$IP | $PUBLIC_IP"
+echo $NOW_PLAYING
