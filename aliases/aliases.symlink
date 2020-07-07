@@ -3,3 +3,6 @@ alias ls='colorls --sd -A'
 alias zshconfig="$EDITOR ~/.zshrc"
 alias ohmyzsh="$EDITOR ~/.oh-my-zsh"
 alias config='usr/bin/git --git-dir=/Users/$(whoami)/.cfg --work-tree=/Users/$(whoami)'
+
+# work
+alias spark="npm run generate-graphql-types && npm start"
