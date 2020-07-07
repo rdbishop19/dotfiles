@@ -26,42 +26,246 @@ setup_gitconfig() {
       git_credential='osxkeychain'
     fi
 
-    # read: read a line from standard input
     user ' - What is your github author name?'
     read -e git_authorname
     user ' - What is your github author email?'
     read -e git_authoremail
 
-    # sed: stream editor for filtering and transforming text
-    # -e script, --expression=script
-    #   add the script to the commands to be executed
     sed -e "s/AUTHORNAME/$git_authorname/g" -e "s/AUTHOREMAIL/$git_authoremail/g" -e "s/GIT_CREDENTIAL_HELPER/$git_credential/g" git/gitconfig.local.symlink.example >git/gitconfig.local.symlink
 
     success 'gitconfig'
   fi
 }
 
-link_file() {}
+link_file() {
+  local src=$1 dst=$2
 
-install_dotfiles() {}
+  local overwrite= backup= skip=
+  local action=
 
-add_cron() {}
+  if [ -f "$dst" -o -d "$dst" -o -L "$dst" ]; then
 
-add_line() {}
+    if [ "$overwrite_all" == "false" ] && [ "$backup_all" == "false" ] && [ "$skip_all" == "false" ]; then
 
-user_mods() {}
+      local currentSrc="$(readlink $dst)"
 
-user_symlinks() {}
+      if [ "$currentSrc" == "$src" ]; then
 
-user_colors() {}
+        skip=true
 
-user_crontab() {}
+      else
 
-user_itermConfig() {}
+        user "File already exists: $dst ($(basename "$src")), what do you want to do?\n\
+        [s]kip, [S]kip all, [o]verwrite, [O]verwrite all, [b]ackup, [B]ackup all?"
+        read -n 1 action
 
-user_fontSetup() {}
+        case "$action" in
+        o)
+          overwrite=true
+          ;;
+        O)
+          overwrite_all=true
+          ;;
+        b)
+          backup=true
+          ;;
+        B)
+          backup_all=true
+          ;;
+        s)
+          skip=true
+          ;;
+        S)
+          skip_all=true
+          ;;
+        *) ;;
 
-user_configFix() {}
+        esac
+
+      fi
+
+    fi
+
+    overwrite=${overwrite:-$overwrite_all}
+    backup=${backup:-$backup_all}
+    skip=${skip:-$skip_all}
+
+    if [ "$overwrite" == "true" ]; then
+      rm -rf "$dst"
+      success "removed $dst"
+    fi
+
+    if [ "$backup" == "true" ]; then
+      mv "$dst" "${dst}.backup"
+      success "moved $dst to ${dst}.backup"
+    fi
+
+    if [ "$skip" == "true" ]; then
+      success "skipped $src"
+    fi
+  fi
+
+  if [ "$skip" != "true" ]; then # "false" or empty
+    ln -s "$1" "$2"
+    success "linked $1 to $2"
+  fi
+}
+
+install_dotfiles() {
+  info 'installing dotfiles'
+
+  local overwrite_all=false backup_all=false skip_all=false
+
+  for src in $(find -H "$DOTFILES_ROOT" -maxdepth 2 -name '*.symlink' -not -path '*.git*'); do
+    dst="$HOME/.$(basename "${src%.*}")"
+    link_file "$src" "$dst"
+  done
+}
+
+add_cron() {
+  local frequency="*/15 * * * *"
+  local command=$1
+  local job="$frequency $command"
+  cat <(fgrep -i -v "$command" <(crontab -l)) <(echo "$job") | crontab -
+}
+
+add_line() {
+  local command=$1
+  local job="$command"
+  cat <(fgrep -i -v "$command" <(crontab -l)) <(echo "$job") | crontab -
+}
+
+setup_gitconfig
+install_dotfiles
+
+# If we're on a Mac, let's install and setup homebrew.
+if [ "$(uname -s)" == "Darwin" ]; then
+  info "installing dependencies"
+  if source bin/dot | while read -r data; do info "$data"; done; then
+    success "dependencies installed"
+    echo ''
+    echo "Now updating dependencies..."
+    pip3 install --upgrade setuptools
+  else
+    fail "error installing dependencies"
+  fi
+fi
+
+user_mods() {
+  info "starting rdbishop19 mods"
+  #backup old bin, if exists
+  if [ -d $HOME/bin ]; then
+    info "current $HOME/bin folder, checking for existing symlink"
+    if [ ! -L $HOME/bin ]; then
+      info "current $HOME/bin is not a symlink, creating backup"
+      sudo mv $HOME/bin bin_old
+      success "backup folder created"
+    else
+      info "$HOME/bin symlink already exists"
+    fi
+  else
+    info "No current $HOME/bin folder found, starting symlink creation"
+  fi
+}
+
+user_symlinks() {
+  # symlink .dotfiles bin to ~
+  ln -s $HOME/.dotfiles/bin $HOME/bin && success "symlink for $HOME/bin folder created"
+
+  # symlink .dotfiles tmux to ~
+  ln -s $HOME/.dotfiles/tmux $HOME/.tmux && success "symlink for $HOME/.tmux folder created"
+
+  # symlink VSCode User Settings
+  if [ -d $HOME/Library/Application\ Support/Code/User ]; then
+    echo "Making backup of current settings.json and creating symlink..."
+    echo ''
+    mv $HOME/Library/Application\ Support/Code/User/settings.json $HOME/Library/Application\ Support/Code/User/settings.old.json && success "settings.old.json created"
+    ln -s $HOME/.dotfiles/code/settings.json $HOME/Library/Application\ Support/Code/User/settings.json && success "settings.json for vs code symlink created"
+  else
+    info "symlink for vs code settings not created"
+    echo "VS Code does not appear to be installed or has not been launched yet. Cannot create symlink for VS Code User settings..."
+  fi
+
+  # airport symlink
+  if ! [ -f /usr/local/bin/airport ]; then
+    sudo ln -s /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport /usr/local/bin/airport
+    success "symlink for airport created"
+  else
+    info "symlink for airport already exists"
+  fi
+}
+
+user_colors() {
+  # colorls setup
+  sudo gem install colorls && success 'ls colors have been configured'
+}
+
+user_crontab() {
+  #crontab additions
+  add_line "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  if [[ $? -eq 0 ]]; then
+    success "$PATH added to crontab"
+  else
+    info "ERROR $PATH could not be added to crontab"
+  fi
+
+  add_cron "speedtest-cli --simple > ~/bin/bandwidth.log"
+  if [[ $? -eq 0 ]]; then
+    success "crontab created for speedtest cli --simple"
+  else
+    info "ERROR crontab could not be created for speedtest cli --simple"
+  fi
+
+  add_cron "speedtest-cli --json > ~/bin/bandwidth.json"
+  if [[ $? -eq 0 ]]; then
+    success "crontab created for speedtest cli --json"
+  else
+    info "ERROR crontab could not be created for speedtest cli --json"
+  fi
+
+  # first run of speedtest-cli
+  echo "Running speedtest-cli for tmux status bar data now..."
+  speedtest-cli --simple >~/bin/bandwidth.log
+  success "speedtest-cli bandwidth.log created"
+
+  speedtest-cli --json >~/bin/bandwidth.json
+  success "speedtest-cli bandwidth.json created"
+}
+
+user_itermConfig() {
+  # iterm2 config
+  read -p "Do you currently use iTerm2 and would you like to set rdbishop19's custom colors? y/n " -n 1 -r
+  echo ''
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    # Specify the preferences directory
+    defaults write com.googlecode.iterm2 PrefsCustomFolder -string "$HOME/.itermcfg/"
+    # Tell iTerm2 to use the custom preferences in the directory
+    defaults write com.googlecode.iterm2 LoadPrefsFromCustomFolder -bool true
+    if [[ $? -eq 0 ]]; then
+      success "successfully configured iTerm2 to use rdbishop19's custom colors..."
+    else
+      fail "failed to apply rdbishop19's custom colors..." >&2
+    fi
+  else
+    info "You chose not to use iTerm2 or rdbishop19's custom colors."
+  fi
+}
+
+user_fontSetup() {
+  # install Source Code Pro nerd font
+  cp $HOME/.dotfiles/Source\ Code\ Pro\ Nerd\ Font\ Complete.ttf /Library/Fonts
+  success "Source Code Pro font copied successfully!"
+}
+
+user_configFix() {
+  # .config permissions fix
+  if [ -d "$HOME/.config" ]; then
+    info "$HOME/.config doesn't exist, nothing to fix"
+  else
+    sudo chown $(whoami) $HOME/.config
+    success '.config permissions fixed'
+  fi
+}
 
 user_mods
 user_symlinks
