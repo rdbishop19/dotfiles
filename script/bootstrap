@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+#
+#
+# bootstrap install the magic
+source ./script/prompt
+
+cd "$(dirname "$0")/.."
+DOTFILES_ROOT=$(pwd -P) # -P Display the physical current working directory (all symbolic links resolved).
+
+set -e # set or unset options or positional parameters
+# "-e" When this option is on, if a simple command fails for any
+# reasons listed in Consequences of Shell Errors or returns an
+# exit status value >0, and is not part of the compound list
+# following awhile, until, or if keyword, and is not a part of an
+# AND  or  OR  list,  and  is  not  a  pipeline preceded by the !
+# reserved word, then the shell shall immediately exit.
+
+echo ''
+
+setup_gitconfig() {
+  if ! [ -f git/gitconfig.local.symlink ]; then
+    info 'setup gitconfig'
+
+    git_credential='cache'
+    if [ "$(uname -s)" == "Darwin" ]; then
+      git_credential='osxkeychain'
+    fi
+
+    # read: read a line from standard input
+    user ' - What is your github author name?'
+    read -e git_authorname
+    user ' - What is your github author email?'
+    read -e git_authoremail
+
+    # sed: stream editor for filtering and transforming text
+    # -e script, --expression=script
+    #   add the script to the commands to be executed
+    sed -e "s/AUTHORNAME/$git_authorname/g" -e "s/AUTHOREMAIL/$git_authoremail/g" -e "s/GIT_CREDENTIAL_HELPER/$git_credential/g" git/gitconfig.local.symlink.example >git/gitconfig.local.symlink
+
+    success 'gitconfig'
+  fi
+}
+
+link_file() {}
+
+install_dotfiles() {}
+
+add_cron() {}
+
+add_line() {}
+
+user_mods() {}
+
+user_symlinks() {}
+
+user_colors() {}
+
+user_crontab() {}
+
+user_itermConfig() {}
+
+user_fontSetup() {}
+
+user_configFix() {}
+
+user_mods
+user_symlinks
+user_colors
+# user_crontab
+user_itermConfig
+user_fontSetup
+user_configFix
+
+success 'Things are getting BIG over here! Terminal setup complete!'
