@@ -5,6 +5,8 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
+# sh ~/.dotfiles/system/set-date.sh
+
 # Path to your oh-my-zsh installation oh-my-zsh specific settings
 export ZSH=~/.oh-my-zsh
 export TERM=xterm-256color
@@ -159,6 +161,7 @@ export PATH=$PATH:~/bin
 
 [[ -s "$HOME/.rvm/scripts/rvm" ]] && . "$HOME/.rvm/scripts/rvm" 
 export PATH="$HOME/.rbenv/bin:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 eval "$(rbenv init -)"
 #---- Source ----
 [ -f ~/bin/fubectl.source ] && source ~/bin/fubectl.source
@@ -171,3 +174,4 @@ source $(dirname $(gem which colorls))/tab_complete.sh
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 export PATH="$HOME/.rbenv/bin:$PATH"
 eval "$(rbenv init -)"
+

@@ -10,3 +10,5 @@ atom.symlink/blob-store
 atom.symlink/recovery
 
 git/gitconfig.local.symlink
+tmux/resurrect
+tmux/plugins/

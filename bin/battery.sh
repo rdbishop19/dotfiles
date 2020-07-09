@@ -2,8 +2,9 @@
 
 HEART='❤'
 
-battery_info=`pmset -g batt`
-current_charge=$(echo $battery_info | grep -o '[0-9]\+%' | awk '{sub (/%/, "", $1); print $1}')
+battery_info=`cat /sys/class/power_supply/BAT1/device/power_supply/BAT1/capacity`
+# current_charge=$(echo $battery_info | grep -o '[0-9]\+%' | awk '{sub (/%/, "", $1); print $1}')
+current_charge=$(echo $battery_info )
 
 if [[ $current_charge -lt 30 ]]; then
     echo -n '#[fg=colour31]'

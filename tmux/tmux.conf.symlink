@@ -107,7 +107,7 @@ set -g @tpm_plugins '          \
    tmux-plugins/tmux-resurrect \
    tmux-plugins/tmux-sessionist \
    tmux-plugins/tmux-sessionist \
-   xamut/tmux-spotify           \
+   pwittchen/tmux-plugin-spotify  \
    tmux-plugins/tmux-online-status \
    tmux-plugins/tmux-resurrect  \
    tmux-plugins/tmux-yank \
