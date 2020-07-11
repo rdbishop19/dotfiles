@@ -121,6 +121,33 @@ plugins=(sudo git history tmux tmuxinator zsh-autosuggestions zsh-completions zs
 # ssh
 # export SSH_KEY_PATH="~/.ssh/rsa_id"
 
+######################
+# all of our zsh files
+typeset -U config_files
+config_files=($HOME/.dotfiles/**/*.zsh)
+
+# load the path files
+for file in ${(M)config_files:#*/path.zsh}
+do
+  source $file
+done
+
+# load everything but the path and completion files
+for file in ${${config_files:#*/path.zsh}:#*/completion.zsh}
+do
+  source $file
+done
+
+# load every completion after autocomplete loads
+for file in ${(M)config_files:#*/completion.zsh}
+do
+  source $file
+done
+
+unset config_files
+
+######################
+
 #---- CUSTOM ----
 #Powerlevel9k/Powerlevel10k settings
 # https://github.com/bhilburn/powerlevel9k/wiki/Show-Off-Your-Config#p9kgt
@@ -135,6 +162,8 @@ source $HOME/.aliases
 autoload -Uz vcs_info 
 autoload -Uz colors && colors
 autoload -U compinit && compinit
+
+bindkey '^ ' autosuggest-accept
 
 # syntax highlighting
 ZSH_HIGHLIGHT_HIGHLIGHTERS=(main brackets pattern cursor)
